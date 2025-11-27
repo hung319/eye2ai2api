@@ -13,7 +13,7 @@ COPY package.json bun.lockb* ./
 RUN bun install --production
 
 # [Bước 2: Copy source code]
-COPY index.js .
+COPY index.ts .
 
 # Thiết lập biến môi trường mặc định (có thể override khi run)
 ENV PORT=3000
@@ -23,4 +23,4 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Lệnh chạy ứng dụng
-CMD ["bun", "index.js"]
+CMD ["bun", "index.ts"]
