@@ -1,22 +1,17 @@
 // =================================================================================
 //  Project: eye2-2api (Bun Edition)
-//  Version: 4.4.0-bun
-//  Codename: Chimera Silent - Universal Compatibility
+//  Version: 4.5.0-bun
+//  Codename: Chimera Silent - Smart Added
 //  Environment: Bun Runtime + ws package
-//
-//  Changes:
-//  - Removed Web UI (Headless).
-//  - Replaced Cloudflare WebSocketPair with 'ws' library for Cookie support.
-//  - Implemented standard OpenAI Stream format.
 // =================================================================================
 
 import { serve } from "bun";
-import WebSocket from "ws"; // Requires: bun add ws
+import WebSocket from "ws";
 
 // --- [Part 1: Core Configuration] ---
 const CONFIG = {
   PROJECT_NAME: "eye2-2api-bun",
-  PROJECT_VERSION: "4.4.0",
+  PROJECT_VERSION: "4.5.0",
 
   // Env Config
   API_MASTER_KEY: process.env.API_MASTER_KEY || "1",
@@ -26,10 +21,21 @@ const CONFIG = {
   API_BASE: "https://sio.eye2.ai",
   ORIGIN: "https://www.eye2.ai",
   
-  // Model List
+  // Model List (Đã thêm "smart")
   MODELS: [
-    "chat_gpt", "claude", "gemini", "grok_ai", "mistral_ai", 
-    "qwen", "deepseek", "llama", "ai21", "amazon_nova", "glm", "moonshot"
+    "chat_gpt", 
+    "claude", 
+    "gemini", 
+    "grok_ai", 
+    "mistral_ai", 
+    "qwen", 
+    "deepseek", 
+    "llama", 
+    "ai21", 
+    "amazon_nova", 
+    "glm", 
+    "moonshot",
+    "smart" // <--- New Model Added
   ],
   DEFAULT_MODEL: "chat_gpt",
 
@@ -127,7 +133,6 @@ async function handleChatCompletions(request) {
       try {
           shareId = await getShareId(lastMessage);
       } catch (e) {
-          // Retry logic simple
           console.warn(`[Retry] Fetching ShareID...`);
           shareId = await getShareId("Hello");
       }
@@ -137,22 +142,21 @@ async function handleChatCompletions(request) {
       // --- Step 2: HTTP Handshake (Get SID & Cookie) ---
       const { sid, cookie } = await socketHttpHandshake();
       
-      // --- Step 3: WebSocket Connection (Using 'ws' for Header support) ---
+      // --- Step 3: WebSocket Connection ---
       const wsUrl = `${CONFIG.API_BASE}/socket.io/?EIO=4&transport=websocket&sid=${sid}`;
       
       const wsHeaders = {
         "User-Agent": CONFIG.HEADERS["User-Agent"],
         "Origin": CONFIG.ORIGIN,
-        "Cookie": cookie || "" // Crucial for session continuity
+        "Cookie": cookie || "" 
       };
 
-      // Connect using 'ws' library
       wsClient = new WebSocket(wsUrl, { headers: wsHeaders });
 
       // --- Step 4: Event Handling ---
       
       wsClient.on('open', () => {
-        wsClient.send('2probe'); // Engine.io Probe
+        wsClient.send('2probe'); 
       });
 
       wsClient.on('message', async (data) => {
@@ -164,9 +168,8 @@ async function handleChatCompletions(request) {
 
             // Handshake Ack
             if (packet === '3probe') {
-                wsClient.send('5'); // Upgrade
+                wsClient.send('5'); 
                 
-                // Auth & Request (Delayed slightly to ensure sequence)
                 setTimeout(() => { wsClient.send(`40${JSON.stringify({ shareId })}`); }, 50);
                 setTimeout(() => {
                     const reqPayload = ["llm:conversation:request", { "shareId": shareId, "llmList": [model] }];
@@ -224,7 +227,6 @@ async function handleChatCompletions(request) {
 
     } catch (e) {
       console.error("[Fatal]", e.message);
-      // Send standard error to client
       await sendSSE({
            error: {
                message: e.message || "Internal Server Error",
